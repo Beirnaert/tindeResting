@@ -7,7 +7,7 @@ library(DBI)
 library(RSQLite)
 xtraVar <- 8
 
-outputDir = "responses/new"
+#outputDir = "responses/new"
 sqlitePath <- "swiperespons.sqlite"
 table <- "swipes"
 
@@ -45,7 +45,19 @@ ui <- fluidPage(
     headerPanel('This is the GOA tindeResting! app.'),
     sidebarLayout(
         sidebarPanel(
-            textInput("useRname", "Your name", "Louise"),
+            fluidRow(
+                column(8,
+                       textInput("useRname", "Your name", "Louise")
+                ),
+                #column(5,selectInput("Gender", "Gender", c( "Female" = "female", "Male" = "male")), offset = -1)
+                column(4, radioButtons("Gender", "Gender", choiceNames = list(
+                    icon("venus"),
+                    icon("mars")
+                ),
+                choiceValues = list(
+                    "female",  "male"
+                )
+            ))),
             selectInput("Polarity", "Ion mode", c("Positive" = "Pos", "Negative" = "Neg")),
             numericInput("SvsNC", "max S vs. NC value:", 0.2),
             numericInput("SvsMB", "max S vs. MB value:", 0.2),
@@ -87,12 +99,12 @@ server <- function(input, output, session) {
     
     
     dataSet <- reactive({
-        test <- read.table(file = paste("shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
+        test <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
         test
         })
     
     SwipeHistory <- reactive({
-        swipehist <- read.table(file = paste("SwipeHistory",input$Polarity,".txt",sep = ""), sep = ",", header = TRUE)
+        swipehist <- read.table(file = paste("./data/SwipeHistory",input$Polarity,".txt",sep = ""), sep = ",", header = TRUE)
         swipehist
     })
 
@@ -196,7 +208,7 @@ server <- function(input, output, session) {
         output$resultsTable <- renderTable({appVals$swipes})
         
         #update the quote
-        k <- k + 1
+        #k <- k + 1
         #appVals$k <- k + 1
         appVals$k <-  appVals$k + 1 
         #iterK()
@@ -225,7 +237,7 @@ server <- function(input, output, session) {
         output$resultsTable <- renderTable({appVals$swipes})
         
         #update the quote
-        k <- k + 1
+        #k <- k + 1
         #appVals$k <- k + 1
         appVals$k <-  appVals$k + 1 
         #iterK()
@@ -254,7 +266,7 @@ server <- function(input, output, session) {
         output$resultsTable <- renderTable({appVals$swipes})
         
         #update the quote
-        k <- k + 1
+        #k <- k + 1
         #appVals$k <- k + 1
         appVals$k <-  appVals$k + 1 
         #iterK()
@@ -283,17 +295,26 @@ server <- function(input, output, session) {
         output$resultsTable <- renderTable({appVals$swipes})
         
         #update the quote
-        k <- k + 1
+        #k <- k + 1
         #appVals$k <- k + 1
         appVals$k <-  appVals$k + 1 
         #iterK()
         
         if(appVals$k %% 20 == 0){
-            showModal(modalDialog(
-                modalButton(label = img(src="george1.jpg", height = 300), icon = NULL),
-                modalButton(label = img(src="george2.jpg", height = 300), icon = NULL),
-                easyClose = TRUE
-            ))
+            if(input$Gender == "female"){
+                showModal(modalDialog(
+                    modalButton(label = img(src="george1.jpg", height = 300), icon = NULL),
+                    modalButton(label = img(src="george2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            } else{
+                showModal(modalDialog(
+                    modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
+                    modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            }
+            
         }
         
         

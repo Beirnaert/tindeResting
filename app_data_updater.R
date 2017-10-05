@@ -1,4 +1,5 @@
 # get the database
+sqlitePath <- "swiperespons.sqlite"
 mydb <- dbConnect(RSQLite::SQLite(), sqlitePath)
 dbListTables(mydb) 
 swipedata <- dbReadTable(mydb, "swipes")
@@ -11,7 +12,7 @@ swipedata_Neg <- swipedata[swipedata$polarity == "Neg", ,drop = FALSE]
 
 # Positive polarity data
 if(nrow(swipedata_Pos) > 0){
-    shinyPosData <- read.table( file = "shinyPosData.txt", sep = ",", header = T)
+    shinyPosData <- read.table( file = "data/shinyPosData.txt", sep = ",", header = T)
     
     for(k in 1:nrow(swipedata_Pos)){
         current_swipe = swipedata_Pos[k,,drop=F]
@@ -21,16 +22,16 @@ if(nrow(swipedata_Pos) > 0){
         }
     }
     
-    write.table(x = shinyPosData, file = "shinyPosData.txt", sep = ",", col.names = TRUE, row.names = FALSE,append = FALSE)
+    write.table(x = shinyPosData, file = "data/shinyPosData.txt", sep = ",", col.names = TRUE, row.names = FALSE,append = FALSE)
     
     swipedata_Pos$date = as.character(Sys.time())
-    write.table(x = swipedata_Pos, file = "SwipeHistoryPos.txt", sep = ",", col.names = !file.exists("SwipeHistoryPos.txt"), row.names = FALSE,append = TRUE)
+    write.table(x = swipedata_Pos, file = "data/SwipeHistoryPos.txt", sep = ",", col.names = !file.exists("SwipeHistoryPos.txt"), row.names = FALSE,append = TRUE)
     
 }
 
 # Negative polarity data
 if(nrow(swipedata_Neg) > 0){
-    shinyNegData <- read.table( file = "shinyNegData.txt", sep = ",", header = T)
+    shinyNegData <- read.table( file = "data/shinyNegData.txt", sep = ",", header = T)
     
     for(k in 1:nrow(swipedata_Neg)){
         current_swipe = swipedata_Neg[k,,drop=F]
@@ -40,11 +41,11 @@ if(nrow(swipedata_Neg) > 0){
         }
     }
     
-    write.table(x = shinyNegData, file = "shinyNegData.txt", sep = ",", col.names = TRUE, row.names = FALSE,append = FALSE)
+    write.table(x = shinyNegData, file = "data/shinyNegData.txt", sep = ",", col.names = TRUE, row.names = FALSE,append = FALSE)
     
     swipedata_Neg$date = as.character(Sys.time())
     
-    write.table(x = swipedata_Neg, file = "SwipeHistoryNeg.txt", sep = ",", col.names = !file.exists("SwipeHistoryNeg.txt"), row.names = FALSE,append = TRUE)
+    write.table(x = swipedata_Neg, file = "data/SwipeHistoryNeg.txt", sep = ",", col.names = !file.exists("SwipeHistoryNeg.txt"), row.names = FALSE,append = TRUE)
     
     
 }
