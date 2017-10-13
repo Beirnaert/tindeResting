@@ -6,11 +6,12 @@ library(ggplot2)
 library(DBI)
 library(RSQLite)
 xtraVar <- 8
+nswipeReward = 40
 
-#outputDir = "responses/new"
+
 sqlitePath <- "swiperespons.sqlite"
 table <- "swipes"
-
+source("app_data_updater.R")
 
 saveData <- function(input, output) {
     # Connect to the database
@@ -25,21 +26,7 @@ saveData <- function(input, output) {
     dbDisconnect(db)
 }
 
-# # save to normal file
-# saveData2File <- function(input, output) {
-#     data2 = cbind(input$useRname, output[1,,drop = FALSE])
-#     #data2 = data2[1,,drop=FALSE]
-#     # Create a unique file name
-#     fileName <- sprintf("%s_%s_%s.csv", input$useRname, data2$index, round(100000*runif(1)))
-#     #fileName <- sprintf("%s.csv", round(100000*runif(1)))
-#     # Write the file to the local system
-#     write.csv(
-#         x = data2,
-#         file = file.path(outputDir, fileName), 
-#         row.names = FALSE, 
-#         quote = TRUE
-#     )
-# }
+
 
 ui <- fluidPage(
     headerPanel('This is the GOA tindeResting! app.'),
@@ -70,9 +57,9 @@ ui <- fluidPage(
             p("Swipe the plot to the right if the time profile is interesting. Left if not."),
             hr(),
             fluidRow(
-                column(5, actionButton(inputId = "buttonLeft", label = "boring", icon = icon("arrow-left") ), align = "right"),
-                column(2, actionButton(inputId = "buttonUp", label = "other", icon = icon("arrow-up") ), align = "center"),
-                column(5, actionButton(inputId = "buttonRight", label = "interesting", icon = icon("arrow-right"), align = "left" ))
+                column(2, actionButton(inputId = "buttonLeft", label = "boring", icon = icon("arrow-left") ), align = "center", offset = 3),
+                column(2, actionButton(inputId = "buttonUp", label = "other", icon = icon("arrow-up") ), align = "center", offset = 0),
+                column(2, actionButton(inputId = "buttonRight", label = "interesting", icon = icon("arrow-right"), align = "center" , offset = 0))
             ),
             br(),
             #actionButton(inputId = "left", label = "boring", icon = icon("arrow-left") ),
@@ -184,10 +171,7 @@ server <- function(input, output, session) {
     #output$quote_author <- renderText({ paste0("-",quote$author) })
     output$resultsTable <- renderDataTable({appVals$swipes})
     
-    # appVals <- reactiveValues(
-    #     quote  = quote,
-    #     swipes = data.frame(quote = character(), author = character(), swipe = character())
-    # )
+   
     appVals <- reactiveValues(
         k  =  1,
         swipes = data.frame(index = character(), mz = character(), rt = character(), swipe = character())
@@ -208,10 +192,26 @@ server <- function(input, output, session) {
         output$resultsTable <- renderTable({appVals$swipes})
         
         #update the quote
-        #k <- k + 1
-        #appVals$k <- k + 1
         appVals$k <-  appVals$k + 1 
-        #iterK()
+ 
+        
+        if(appVals$k %% nswipeReward == 0){
+            if(input$Gender == "female"){
+                showModal(modalDialog(
+                    modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
+                    modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
+                    easyClose = TRUE
+                ))
+            } else{
+                showModal(modalDialog(
+                    modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
+                    modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            }
+            
+        }
+        
         
         saveData(input, appVals$swipes )
         
@@ -237,10 +237,26 @@ server <- function(input, output, session) {
         output$resultsTable <- renderTable({appVals$swipes})
         
         #update the quote
-        #k <- k + 1
-        #appVals$k <- k + 1
         appVals$k <-  appVals$k + 1 
-        #iterK()
+        
+        
+        if(appVals$k %% nswipeReward == 0){
+            if(input$Gender == "female"){
+                showModal(modalDialog(
+                    modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
+                    modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
+                    easyClose = TRUE
+                ))
+            } else{
+                showModal(modalDialog(
+                    modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
+                    modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            }
+            
+        }
+        
         
         saveData(input, appVals$swipes )
         
@@ -266,10 +282,24 @@ server <- function(input, output, session) {
         output$resultsTable <- renderTable({appVals$swipes})
         
         #update the quote
-        #k <- k + 1
-        #appVals$k <- k + 1
         appVals$k <-  appVals$k + 1 
-        #iterK()
+
+        if(appVals$k %% nswipeReward == 0){
+            if(input$Gender == "female"){
+                showModal(modalDialog(
+                    modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
+                    modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
+                    easyClose = TRUE
+                ))
+            } else{
+                showModal(modalDialog(
+                    modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
+                    modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            }
+            
+        }
         
         saveData(input, appVals$swipes )
         
@@ -295,16 +325,14 @@ server <- function(input, output, session) {
         output$resultsTable <- renderTable({appVals$swipes})
         
         #update the quote
-        #k <- k + 1
-        #appVals$k <- k + 1
         appVals$k <-  appVals$k + 1 
-        #iterK()
+
         
-        if(appVals$k %% 20 == 0){
+        if(appVals$k %% nswipeReward == 0){
             if(input$Gender == "female"){
                 showModal(modalDialog(
-                    modalButton(label = img(src="george1.jpg", height = 300), icon = NULL),
-                    modalButton(label = img(src="george2.jpg", height = 300), icon = NULL),
+                    modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
+                    modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
                     easyClose = TRUE
                 ))
             } else{

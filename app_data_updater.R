@@ -2,9 +2,15 @@
 sqlitePath <- "swiperespons.sqlite"
 mydb <- dbConnect(RSQLite::SQLite(), sqlitePath)
 dbListTables(mydb) 
-swipedata <- dbReadTable(mydb, "swipes")
+if(length(dbListTables(mydb)) != 0){
+    swipedata <- dbReadTable(mydb, "swipes")
+    data.exists = TRUE
+    dbRemoveTable(mydb, "swipes")
+} else{
+    data.exists = FALSE
+}
 dbDisconnect(mydb)
-unlink(sqlitePath)
+
 
 # update profile data files
 swipedata_Pos <- swipedata[swipedata$polarity == "Pos", ,drop = FALSE]
