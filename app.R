@@ -15,17 +15,25 @@ sqlitePath <- "swiperespons.sqlite"
 table <- "swipes"
 source("app_data_updater.R")
 
-saveData <- function(input, output) {
+saveData <- function(input, output, iter) {
     # Connect to the database
-    data2 = cbind(input$useRname,input$Polarity, output[1,,drop = FALSE])
-    #colnames(data2) = c("user", "ind", "mz","rt","swipe")
-    colnames(data2) = c("user", "polarity","ind", "mz","rt","swipe")
+    data2 = cbind(iter, input$useRname,input$Polarity, output[1,,drop = FALSE])
+    colnames(data2) = c("iter", "user", "polarity","ind", "mz","rt","swipe")
     
     db <- DBI::dbConnect(RSQLite::SQLite(), sqlitePath)
     
     DBI::dbWriteTable(db, name=table, value=data2, row.names=FALSE, append=TRUE)
     
     DBI::dbDisconnect(db)
+}
+
+OopsieDaisyRemoveDbEntry <- function(input, output, iter){
+    Db <- DBI::dbConnect(RSQLite::SQLite(), sqlitePath)
+    
+    if("swipes" %in% DBI::dbListTables(Db) ){
+        dbExecute(Db, paste("DELETE FROM swipes WHERE user='", as.character(input$useRname),"' AND iter=", as.character(iter), sep = "") )
+    }
+    DBI::dbDisconnect(Db)
 }
 
 
@@ -51,7 +59,14 @@ ui <- fluidPage(
                        )
                 )
             ),
-            selectInput("Polarity", "Ion mode", c("Positive" = "Pos", "Negative" = "Neg")),
+            fluidRow(
+                column(6,
+                       selectInput("Polarity", "Ion mode", c("Positive" = "Pos", "Negative" = "Neg"))
+                ),
+                column(6, 
+                       numericInput("minRT", "minimal RT (min)", 0)
+                )
+            ),
             fluidRow(
                 column(6,
                        numericInput("SvsNC", "max S vs NC val.", 0.2)
@@ -66,7 +81,14 @@ ui <- fluidPage(
                 ),
                 column(6, selectInput("swipeOrder", "Swipe Order", c("Significance" = "sig", "Random" = "rnd")))
             ),
-            plotOutput("selectedRegion", height = 300)
+            plotOutput("selectedRegion", height = 300),
+            br(),
+            fluidRow(
+                column(2, actionButton("undo", 
+                                       "Oopsie daisy",  
+                                       style="color:#fff; background-color:Crimson"),
+                       align = "center", 
+                       offset = 3 ))
         ),
         mainPanel(
             h4("Swipe Me! Or use the arrows"),
@@ -116,6 +138,7 @@ server <- function(input, output, session) {
         if(input$onlyNew == "yes"){
             subset.selection[dataSet()$qSvsMB <= input$SvsMB &  
                                  dataSet()$qSvsNC<= input$SvsNC & 
+                                 dataSet()$rtmed >= (60*input$minRT) &
                                  ! dataSet()$index %in% SwipeHistory()$ind[SwipeHistory()$user == input$useRname] ] <- TRUE
         } else{
             subset.selection[dataSet()$qSvsMB <= input$SvsMB &  
@@ -246,7 +269,7 @@ server <- function(input, output, session) {
         }
         
         
-        saveData(input, appVals$swipes )
+        saveData(input, appVals$swipes, appVals$k)
         
         #send update to the ui.
         output$index <- renderText({dataSet()[dataSubset(),]$index[selection.vector()[as.numeric(appVals$k)]]})
@@ -296,7 +319,7 @@ server <- function(input, output, session) {
         }
         
         
-        saveData(input, appVals$swipes )
+        saveData(input, appVals$swipes, appVals$k)
         
         #send update to the ui.
         output$index <- renderText({dataSet()[dataSubset(),]$index[selection.vector()[as.numeric(appVals$k)]]})
@@ -344,7 +367,7 @@ server <- function(input, output, session) {
             
         }
         
-        saveData(input, appVals$swipes )
+        saveData(input, appVals$swipes, appVals$k)
         
         #send update to the ui.
         output$index <- renderText({dataSet()[dataSubset(),]$index[selection.vector()[as.numeric(appVals$k)]]})
@@ -394,7 +417,7 @@ server <- function(input, output, session) {
         }
         
         
-        saveData(input, appVals$swipes )
+        saveData(input, appVals$swipes, appVals$k)
         
         #send update to the ui.
         output$index <- renderText({dataSet()[dataSubset(),]$index[selection.vector()[as.numeric(appVals$k)]]})
@@ -403,6 +426,17 @@ server <- function(input, output, session) {
         
         
         
+    }) #close event observe.
+    observeEvent( input$undo,{
+
+        OopsieDaisyRemoveDbEntry(input, appVals$swipes, appVals$k)
+        
+        showModal(modalDialog(
+            title = "Reaction deleted",
+            "The last reaction you submitted to the database has been deleted. The time profile will be reviewed by someone else.",
+            easyClose = TRUE
+        ))
+     
     }) #close event observe.
 }
 

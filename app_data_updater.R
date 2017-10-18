@@ -1,8 +1,8 @@
 # get the database
 sqlitePath <- "swiperespons.sqlite"
 mydb <- DBI::dbConnect(RSQLite::SQLite(), sqlitePath)
-DBI::dbListTables(mydb) 
-if("swipes" %in% dbListTables(mydb) ){
+#DBI::dbListTables(mydb) 
+if("swipes" %in% DBI::dbListTables(mydb) ){
     swipedata <- DBI::dbReadTable(mydb, "swipes")
     data.exists = TRUE
     DBI::dbRemoveTable(mydb, "swipes")
@@ -12,6 +12,7 @@ if("swipes" %in% dbListTables(mydb) ){
 DBI::dbDisconnect(mydb)
 
 if(data.exists){
+    swipedata <- subset(swipedata, select = - iter )
     
     # update profile data files
     swipedata_Pos <- swipedata[swipedata$polarity == "Pos", ,drop = FALSE]
@@ -32,7 +33,7 @@ if(data.exists){
         write.table(x = shinyPosData, file = "data/shinyPosData.txt", sep = ",", col.names = TRUE, row.names = FALSE,append = FALSE)
         
         swipedata_Pos$date = as.character(Sys.time())
-        write.table(x = swipedata_Pos, file = "data/SwipeHistoryPos.txt", sep = ",", col.names = !file.exists("SwipeHistoryPos.txt"), row.names = FALSE,append = TRUE)
+        write.table(x = swipedata_Pos, file = "data/SwipeHistoryPos.txt", sep = ",", col.names = !file.exists("data/SwipeHistoryPos.txt"), row.names = FALSE,append = TRUE)
         
     }
     
@@ -52,7 +53,7 @@ if(data.exists){
         
         swipedata_Neg$date = as.character(Sys.time())
         
-        write.table(x = swipedata_Neg, file = "data/SwipeHistoryNeg.txt", sep = ",", col.names = !file.exists("SwipeHistoryNeg.txt"), row.names = FALSE,append = TRUE)
+        write.table(x = swipedata_Neg, file = "data/SwipeHistoryNeg.txt", sep = ",", col.names = !file.exists("data/SwipeHistoryNeg.txt"), row.names = FALSE,append = TRUE)
         
         
     }
