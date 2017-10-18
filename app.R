@@ -33,24 +33,38 @@ ui <- fluidPage(
     sidebarLayout(
         sidebarPanel(
             fluidRow(
-                column(8,
+                column(6,
                        textInput("useRname", "Your name", "Louise")
                 ),
-                #column(5,selectInput("Gender", "Gender", c( "Female" = "female", "Male" = "male")), offset = -1)
-                column(4, radioButtons("Gender", "Gender", choiceNames = list(
-                    icon("venus"),
-                    icon("mars")
-                ),
-                choiceValues = list(
-                    "female",  "male"
+                column(6, 
+                       radioButtons("Gender", "Gender", choiceNames = list(
+                           icon("transgender"),
+                           icon("venus"),
+                           icon("mars")
+                       ),
+                       choiceValues = list(
+                           "trans" , "female",  "male"
+                       ), 
+                       inline = TRUE
+                       )
                 )
-            ))),
+            ),
             selectInput("Polarity", "Ion mode", c("Positive" = "Pos", "Negative" = "Neg")),
-            numericInput("SvsNC", "max S vs. NC value:", 0.2),
-            numericInput("SvsMB", "max S vs. MB value:", 0.2),
-            selectInput("onlyNew", "Only Unseen", c("Yes" = "yes", "No" = "no")),
-            selectInput("swipeOrder", "Swipe Order", c("Significance" = "sig", "Random" = "rnd")),
-            plotOutput("selectedRegion", height = 200)
+            fluidRow(
+                column(6,
+                       numericInput("SvsNC", "max S vs NC val.", 0.2)
+                ),
+                column(6, 
+                       numericInput("SvsMB", "max S vs MB val.", 0.2)
+                       )
+            ),
+            fluidRow(
+                column(6,
+                       selectInput("onlyNew", "Only Unseen", c("Yes" = "yes", "No" = "no"))
+                ),
+                column(6, selectInput("swipeOrder", "Swipe Order", c("Significance" = "sig", "Random" = "rnd")))
+            ),
+            plotOutput("selectedRegion", height = 300)
         ),
         mainPanel(
             h4("Swipe Me! Or use the arrows"),
@@ -202,10 +216,15 @@ server <- function(input, output, session) {
                     modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else{
+            } else if(input$Gender == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
                     modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            } else{
+                showModal(modalDialog(
+                    modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
             }
@@ -247,10 +266,15 @@ server <- function(input, output, session) {
                     modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else{
+            } else if(input$Gender == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
                     modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            } else{
+                showModal(modalDialog(
+                    modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
             }
@@ -291,10 +315,15 @@ server <- function(input, output, session) {
                     modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else{
+            } else if(input$Gender == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
                     modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            } else{
+                showModal(modalDialog(
+                    modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
             }
@@ -335,10 +364,15 @@ server <- function(input, output, session) {
                     modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else{
+            } else if(input$Gender == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
                     modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
+                    easyClose = TRUE
+                ))
+            } else{
+                showModal(modalDialog(
+                    modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
             }
