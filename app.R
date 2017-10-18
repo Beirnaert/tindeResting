@@ -3,8 +3,10 @@
 library(shiny)
 library(shinysense)
 library(ggplot2)
-library(DBI)
-library(RSQLite)
+#library(DBI)
+#library(RSQLite)
+#library(grid)
+#library(gridExtra)
 xtraVar <- 8
 nswipeReward = 40
 
@@ -19,11 +21,11 @@ saveData <- function(input, output) {
     #colnames(data2) = c("user", "ind", "mz","rt","swipe")
     colnames(data2) = c("user", "polarity","ind", "mz","rt","swipe")
     
-    db <- dbConnect(RSQLite::SQLite(), sqlitePath)
+    db <- DBI::dbConnect(RSQLite::SQLite(), sqlitePath)
     
-    dbWriteTable(db, name=table, value=data2, row.names=FALSE, append=TRUE)
+    DBI::dbWriteTable(db, name=table, value=data2, row.names=FALSE, append=TRUE)
     
-    dbDisconnect(db)
+    DBI::dbDisconnect(db)
 }
 
 
@@ -80,7 +82,6 @@ ui <- fluidPage(
             #actionButton(inputId = "up", label = "other", icon = icon("arrow-up") ),
             #actionButton(inputId = "right", label = "interesting", icon = icon("arrow-right") ),
             shinyswiprUI( "quote_swiper",
-                          hr(),
                           plotOutput("profilePlot")
             ),
             hr(),
@@ -166,12 +167,25 @@ server <- function(input, output, session) {
         Group[Group %in% c("S1", "S2", "S3")] <- "S"
         Group <- as.factor(Group)
         kk <- selection.vector()[as.numeric(appVals$k)]
-        compoundData <- data.frame(t = time, int = as.numeric(datasubset[kk,start:end]), type = type, group = Group)   
-        ggplot(compoundData, aes(x=time,y=int,group = type, colour = Group)) +
+        compoundData <- data.frame(t = time, int = as.numeric(datasubset[kk,start:end]), type = type, group = Group)  
+        RTplot = as.character((round(100*(datasubset$rtmed[kk]/60))/100))
+        MZplot = as.character(round(1000*datasubset$mzmed[kk])/1000)
+        plotname = paste("mz:", MZplot, "  RT:",  RTplot, "min" , sep = " ")
+        gg1 <- ggplot(compoundData, aes(x=time,y=int,group = type, colour = Group)) +
+               geom_line() +
+               ggtitle(plotname) +
+               theme_bw() +
+               theme(plot.title = element_text(hjust = 0.5),
+                     legend.position="bottom")
+        
+        gg2 <- ggplot(compoundData, aes(x=time,y=log10(int),group = type, colour = Group)) +
             geom_line() +
-            #ggtitle(plotname) +
-            theme_bw() 
-            #theme(plot.title = element_text(hjust = 0.5))
+            ggtitle(" ") +
+            theme_bw() +
+            theme(plot.title = element_text(hjust = 0.5),
+                  legend.position="bottom")
+        
+        gridExtra::grid.arrange(gg1,gg2, layout_matrix = rbind(c(1,1,2),c(1,1,2),c(1,1,2)))
         
         
     })

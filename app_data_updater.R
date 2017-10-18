@@ -1,15 +1,15 @@
 # get the database
 sqlitePath <- "swiperespons.sqlite"
-mydb <- dbConnect(RSQLite::SQLite(), sqlitePath)
-dbListTables(mydb) 
+mydb <- DBI::dbConnect(RSQLite::SQLite(), sqlitePath)
+DBI::dbListTables(mydb) 
 if("swipes" %in% dbListTables(mydb) ){
-    swipedata <- dbReadTable(mydb, "swipes")
+    swipedata <- DBI::dbReadTable(mydb, "swipes")
     data.exists = TRUE
-    dbRemoveTable(mydb, "swipes")
+    DBI::dbRemoveTable(mydb, "swipes")
 } else{
     data.exists = FALSE
 }
-dbDisconnect(mydb)
+DBI::dbDisconnect(mydb)
 
 if(data.exists){
     
