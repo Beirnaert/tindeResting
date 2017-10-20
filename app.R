@@ -3,17 +3,20 @@
 library(shiny)
 library(shinysense)
 library(ggplot2)
+
 #library(DBI)
 #library(RSQLite)
 #library(grid)
-#library(gridExtra)
+
 xtraVar <- 8
-nswipeReward = 40
+nswipeReward = 50
 
 
 sqlitePath <- "swiperespons.sqlite"
 table <- "swipes"
-source("app_data_updater.R")
+#source("app_data_updater.R")
+source("arrangeGrobLocal.R")
+source("grid.arrangeLocal.R")
 
 saveData <- function(input, output, iter) {
     # Connect to the database
@@ -53,7 +56,7 @@ ui <- fluidPage(
                            icon("mars")
                        ),
                        choiceValues = list(
-                           "trans" , "female",  "male"
+                           "LGBTQI" , "female",  "male"
                        ), 
                        inline = TRUE
                        )
@@ -77,7 +80,7 @@ ui <- fluidPage(
             ),
             fluidRow(
                 column(6,
-                       selectInput("onlyNew", "Only Unseen", c("Yes" = "yes", "No" = "no"))
+                       selectInput("onlyNew", "Time profiles", c("New to NatuRA" = "yes", "New to me" = "no"))
                 ),
                 column(6, selectInput("swipeOrder", "Swipe Order", c("Significance" = "sig", "Random" = "rnd")))
             ),
@@ -119,10 +122,14 @@ ui <- fluidPage(
 )
 
 server <- function(input, output, session) {
+    
+    source("app_data_updater.R")
+    
     card_swipe <- callModule(shinyswipr, "quote_swiper")
     
     
     dataSet <- reactive({
+        #test <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
         test <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
         test
         })
@@ -139,10 +146,12 @@ server <- function(input, output, session) {
             subset.selection[dataSet()$qSvsMB <= input$SvsMB &  
                                  dataSet()$qSvsNC<= input$SvsNC & 
                                  dataSet()$rtmed >= (60*input$minRT) &
-                                 ! dataSet()$index %in% SwipeHistory()$ind[SwipeHistory()$user == input$useRname] ] <- TRUE
+                                 dataSet()$swipesTotal == 0 ] <- TRUE
         } else{
             subset.selection[dataSet()$qSvsMB <= input$SvsMB &  
-                                 dataSet()$qSvsNC<= input$SvsNC ] <- TRUE
+                                 dataSet()$qSvsNC<= input$SvsNC & 
+                                 dataSet()$rtmed >= (60*input$minRT) &
+                                 ! dataSet()$index %in% SwipeHistory()$ind[SwipeHistory()$user == input$useRname] ] <- TRUE
         }
         subset.selection
         })
@@ -208,7 +217,7 @@ server <- function(input, output, session) {
             theme(plot.title = element_text(hjust = 0.5),
                   legend.position="bottom")
         
-        gridExtra::grid.arrange(gg1,gg2, layout_matrix = rbind(c(1,1,2),c(1,1,2),c(1,1,2)))
+        grid.arrangeLocal(gg1,gg2, layout_matrix = rbind(c(1,1,2),c(1,1,2),c(1,1,2)))
         
         
     })
@@ -247,23 +256,36 @@ server <- function(input, output, session) {
  
         
         if(appVals$k %% nswipeReward == 0){
-            if(input$Gender == "female"){
-                showModal(modalDialog(
-                    modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
-                    modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
-                    easyClose = TRUE
-                ))
-            } else if(input$Gender == "male"){
+            if(input$Gender == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
                     modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else{
+            } else if(input$Gender == "LGBTQI"){
                 showModal(modalDialog(
                     modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
+            } else if(input$Gender == "female"){
+                if(appVals$k %% 3*nswipeReward == 0){
+                    showModal(modalDialog(
+                        modalButton(label = img(src="charlie1.jpg", height = 250), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                } else if(appVals$k %% 2*nswipeReward == 0){
+                    showModal(modalDialog(
+                        modalButton(label = img(src="george1.jpg", height = 300), icon = NULL),
+                        modalButton(label = img(src="george2.jpg", height = 300), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                } else {
+                    showModal(modalDialog(
+                        modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
+                        modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                }
             }
             
         }
@@ -297,23 +319,36 @@ server <- function(input, output, session) {
         
         
         if(appVals$k %% nswipeReward == 0){
-            if(input$Gender == "female"){
-                showModal(modalDialog(
-                    modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
-                    modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
-                    easyClose = TRUE
-                ))
-            } else if(input$Gender == "male"){
+            if(input$Gender == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
                     modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else{
+            } else if(input$Gender == "LGBTQI"){
                 showModal(modalDialog(
                     modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
+            } else if(input$Gender == "female"){
+                if(appVals$k %% 3*nswipeReward == 0){
+                    showModal(modalDialog(
+                        modalButton(label = img(src="charlie1.jpg", height = 250), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                } else if(appVals$k %% 2*nswipeReward == 0){
+                    showModal(modalDialog(
+                        modalButton(label = img(src="george1.jpg", height = 300), icon = NULL),
+                        modalButton(label = img(src="george2.jpg", height = 300), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                } else {
+                    showModal(modalDialog(
+                        modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
+                        modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                }
             }
             
         }
@@ -346,23 +381,36 @@ server <- function(input, output, session) {
         appVals$k <-  appVals$k + 1 
 
         if(appVals$k %% nswipeReward == 0){
-            if(input$Gender == "female"){
-                showModal(modalDialog(
-                    modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
-                    modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
-                    easyClose = TRUE
-                ))
-            } else if(input$Gender == "male"){
+            if(input$Gender == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
                     modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else{
+            } else if(input$Gender == "LGBTQI"){
                 showModal(modalDialog(
                     modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
+            } else if(input$Gender == "female"){
+                if(appVals$k %% 3*nswipeReward == 0){
+                    showModal(modalDialog(
+                        modalButton(label = img(src="charlie1.jpg", height = 250), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                } else if(appVals$k %% 2*nswipeReward == 0){
+                    showModal(modalDialog(
+                        modalButton(label = img(src="george1.jpg", height = 300), icon = NULL),
+                        modalButton(label = img(src="george2.jpg", height = 300), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                } else {
+                    showModal(modalDialog(
+                        modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
+                        modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                }
             }
             
         }
@@ -394,27 +442,42 @@ server <- function(input, output, session) {
         appVals$k <-  appVals$k + 1 
 
         
+        
         if(appVals$k %% nswipeReward == 0){
-            if(input$Gender == "female"){
-                showModal(modalDialog(
-                    modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
-                    modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
-                    easyClose = TRUE
-                ))
-            } else if(input$Gender == "male"){
+            if(input$Gender == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src="vikander1.jpg", height = 300), icon = NULL),
                     modalButton(label = img(src="vikander2.jpg", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else{
+            } else if(input$Gender == "LGBTQI"){
                 showModal(modalDialog(
                     modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
+            } else if(input$Gender == "female"){
+                if(appVals$k %% 3*nswipeReward == 0){
+                    showModal(modalDialog(
+                        modalButton(label = img(src="charlie1.jpg", height = 250), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                } else if(appVals$k %% 2*nswipeReward == 0){
+                    showModal(modalDialog(
+                        modalButton(label = img(src="george1.jpg", height = 300), icon = NULL),
+                        modalButton(label = img(src="george2.jpg", height = 300), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                } else {
+                    showModal(modalDialog(
+                        modalButton(label = img(src="reynolds1.jpeg", height = 250), icon = NULL),
+                        modalButton(label = img(src="reynolds2.jpg", height = 250), icon = NULL),
+                        easyClose = TRUE
+                    ))
+                }
             }
             
         }
+
         
         
         saveData(input, appVals$swipes, appVals$k)
