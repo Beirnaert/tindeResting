@@ -8,33 +8,56 @@ library(ggplot2)
 #library(RSQLite)
 #library(grid)
 
-xtraVar <- 8
+xtraVar <- 6
 nswipeReward = 50
 
-
 sqlitePath <- "swiperespons.sqlite"
-table <- "swipes"
-#source("app_data_updater.R")
 source("arrangeGrobLocal.R")
 source("grid.arrangeLocal.R")
 
 saveData <- function(input, output, iter) {
     # Connect to the database
-    data2 = cbind(iter, input$useRname,input$Polarity, output[1,,drop = FALSE])
-    colnames(data2) = c("iter", "user", "polarity","ind", "mz","rt","swipe")
+    NatuRA_members = c("Ken", "Kenne", "Laura", "Sebastiaan", "Seb", "Deborah", "Anastasia", "Luc")
+    
+    NatuRA <- tolower(input$useRname) %in% tolower(NatuRA_members)
+    
+    data2 = cbind(iter, input$useRname, NatuRA, input$Polarity, output[1,,drop = FALSE])
+    colnames(data2) = c("iter", "user", "NatuRA","polarity","ind", "mz","rt","swipe")
     
     db <- DBI::dbConnect(RSQLite::SQLite(), sqlitePath)
     
-    DBI::dbWriteTable(db, name=table, value=data2, row.names=FALSE, append=TRUE)
+    DBI::dbWriteTable(db, name="swipes", value=data2, row.names=FALSE, append=TRUE)
     
     DBI::dbDisconnect(db)
+}
+
+getHistory <- function(input) {
+    
+    if(input$onlyNew == "yes"){
+        # new to NatuRA
+        historyfile = "./data/SwipeHistory.sqlite"
+        Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
+        
+        history_indexes <- as.integer(DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND NatuRA=1", sep = "") )[[1]] )
+        
+        DBI::dbDisconnect(Db)
+    } else{
+        # new to me
+        historyfile = "./data/SwipeHistory.sqlite"
+        Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
+        
+        history_indexes <- as.integer(DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND user='", as.character(input$useRname),"'", sep = "") )[[1]] )
+        
+        DBI::dbDisconnect(Db)
+    }
+    return(history_indexes)
 }
 
 OopsieDaisyRemoveDbEntry <- function(input, output, iter){
     Db <- DBI::dbConnect(RSQLite::SQLite(), sqlitePath)
     
     if("swipes" %in% DBI::dbListTables(Db) ){
-        dbExecute(Db, paste("DELETE FROM swipes WHERE user='", as.character(input$useRname),"' AND iter=", as.character(iter), sep = "") )
+        DBI::dbExecute(Db, paste("DELETE FROM swipes WHERE user='", as.character(input$useRname),"' AND iter=", as.character(iter), sep = "") )
     }
     DBI::dbDisconnect(Db)
 }
@@ -76,7 +99,7 @@ ui <- fluidPage(
                 ),
                 column(6, 
                        numericInput("SvsMB", "max S vs MB val.", 0.2)
-                       )
+                )
             ),
             fluidRow(
                 column(6,
@@ -103,9 +126,6 @@ ui <- fluidPage(
                 column(2, actionButton(inputId = "buttonRight", label = "interesting", icon = icon("arrow-right"), align = "center" , offset = 0))
             ),
             br(),
-            #actionButton(inputId = "left", label = "boring", icon = icon("arrow-left") ),
-            #actionButton(inputId = "up", label = "other", icon = icon("arrow-up") ),
-            #actionButton(inputId = "right", label = "interesting", icon = icon("arrow-right") ),
             shinyswiprUI( "quote_swiper",
                           plotOutput("profilePlot")
             ),
@@ -117,7 +137,7 @@ ui <- fluidPage(
         
     ),
     hr(),
-    print("Made by Charlie Beirnaert. Having Problems? The solution is just an email away, hopefully." )
+    print("Made by Charlie Beirnaert. Having Problems? The solution is just an email away... hopefully." )
     
 )
 
@@ -132,31 +152,20 @@ server <- function(input, output, session) {
         #test <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
         test <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
         test
-        })
-    
-    SwipeHistory <- reactive({
-        swipehist <- read.table(file = paste("./data/SwipeHistory",input$Polarity,".txt",sep = ""), sep = ",", header = TRUE)
-        swipehist
     })
-
-
+    
     dataSubset <- reactive({
+        # the getHistory function knows which selection is to be made (because we give it input): user or natura based
         subset.selection <- rep(FALSE, nrow(dataSet()))
-        if(input$onlyNew == "yes"){
-            subset.selection[dataSet()$qSvsMB <= input$SvsMB &  
-                                 dataSet()$qSvsNC<= input$SvsNC & 
-                                 dataSet()$rtmed >= (60*input$minRT) &
-                                 dataSet()$swipesTotal == 0 ] <- TRUE
-        } else{
-            subset.selection[dataSet()$qSvsMB <= input$SvsMB &  
-                                 dataSet()$qSvsNC<= input$SvsNC & 
-                                 dataSet()$rtmed >= (60*input$minRT) &
-                                 ! dataSet()$index %in% SwipeHistory()$ind[SwipeHistory()$user == input$useRname] ] <- TRUE
-        }
+        subset.selection[dataSet()$qSvsMB <= input$SvsMB &
+                             dataSet()$qSvsNC<= input$SvsNC &
+                             dataSet()$rtmed >= (60*input$minRT) &
+                             ! dataSet()$index %in% getHistory(input) ] <- TRUE
+        
         subset.selection
-        })
-
-
+    })
+    
+    
     selection.vector <- reactive({
         datasubset <- dataSet()[dataSubset(),]
         
@@ -173,7 +182,7 @@ server <- function(input, output, session) {
     
     
     output$selectedRegion <- renderPlot({
-        #ggplot(dataSet(), aes(x = qSvsMB, y = qSvsNC)) +geom_point()
+        
         input$useRname
         ggplot(dataSet(), aes(x = qSvsMB, y = qSvsNC, colour = as.factor(dataSubset()))) +
             geom_point() +
@@ -182,10 +191,10 @@ server <- function(input, output, session) {
                  y= "q value. S vs NC") +
             ggtitle(paste(as.character(sum(dataSubset()))," Features Selected", sep ="")) +
             theme(plot.title = element_text(hjust = 0.5))
-
+        
     })
     
-   
+    
     
     
     ### old shit
@@ -204,13 +213,13 @@ server <- function(input, output, session) {
         MZplot = as.character(round(1000*datasubset$mzmed[kk])/1000)
         plotname = paste("mz:", MZplot, "  RT:",  RTplot, "min" , sep = " ")
         gg1 <- ggplot(compoundData, aes(x=time,y=int,group = type, colour = Group)) +
-               geom_line() +
-               ggtitle(plotname) +
-               theme_bw() +
-               theme(plot.title = element_text(hjust = 0.5),
-                     legend.position="bottom")
+            geom_line() +
+            ggtitle(plotname) +
+            theme_bw() +
+            theme(plot.title = element_text(hjust = 0.5),
+                  legend.position="bottom")
         
-        gg2 <- ggplot(compoundData, aes(x=time,y=log10(int),group = type, colour = Group)) +
+        gg2 <- ggplot(compoundData, aes(x=time,y=log10(int+1),group = type, colour = Group)) +
             geom_line() +
             ggtitle(" ") +
             theme_bw() +
@@ -221,17 +230,14 @@ server <- function(input, output, session) {
         
         
     })
-   ####
+    ####
     output$index <- renderText({dataSet()[dataSubset(),]$index[selection.vector()[as.numeric(appVals$k)]]})
     output$mz <- renderText({ dataSet()[dataSubset(),]$mzmed[selection.vector()[as.numeric(appVals$k)]]})
     output$rt <- renderText({dataSet()[dataSubset(),]$rtmed[selection.vector()[as.numeric(appVals$k)]]})
     
-    #quote               <- fortune()
-    #output$quote        <- renderText({ quote$quote })
-    #output$quote_author <- renderText({ paste0("-",quote$author) })
     output$resultsTable <- renderDataTable({appVals$swipes})
     
-   
+    
     appVals <- reactiveValues(
         k  =  1,
         swipes = data.frame(index = character(), mz = character(), rt = character(), swipe = character())
@@ -253,7 +259,7 @@ server <- function(input, output, session) {
         
         #update the quote
         appVals$k <-  appVals$k + 1 
- 
+        
         
         if(appVals$k %% nswipeReward == 0){
             if(input$Gender == "male"){
@@ -379,7 +385,7 @@ server <- function(input, output, session) {
         
         #update the quote
         appVals$k <-  appVals$k + 1 
-
+        
         if(appVals$k %% nswipeReward == 0){
             if(input$Gender == "male"){
                 showModal(modalDialog(
@@ -440,7 +446,7 @@ server <- function(input, output, session) {
         
         #update the quote
         appVals$k <-  appVals$k + 1 
-
+        
         
         
         if(appVals$k %% nswipeReward == 0){
@@ -477,7 +483,7 @@ server <- function(input, output, session) {
             }
             
         }
-
+        
         
         
         saveData(input, appVals$swipes, appVals$k)
@@ -491,7 +497,7 @@ server <- function(input, output, session) {
         
     }) #close event observe.
     observeEvent( input$undo,{
-
+        
         OopsieDaisyRemoveDbEntry(input, appVals$swipes, appVals$k)
         
         showModal(modalDialog(
@@ -499,7 +505,7 @@ server <- function(input, output, session) {
             "The last reaction you submitted to the database has been deleted. The time profile will be reviewed by someone else.",
             easyClose = TRUE
         ))
-     
+        
     }) #close event observe.
 }
 
