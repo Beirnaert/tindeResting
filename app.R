@@ -121,9 +121,9 @@ ui <- fluidPage(
             p("Swipe the plot to the right if the time profile is interesting. Left if not."),
             hr(),
             fluidRow(
-                column(2, actionButton(inputId = "buttonLeft", label = "boring", icon = icon("arrow-left") ), align = "center", offset = 3),
+                column(2, actionButton(inputId = "buttonLeft", label = "boring", icon = icon("arrow-left") ), align = "left", offset = 3),
                 column(2, actionButton(inputId = "buttonUp", label = "other", icon = icon("arrow-up") ), align = "center", offset = 0),
-                column(2, actionButton(inputId = "buttonRight", label = "interesting", icon = icon("arrow-right")), align = "center" , offset = 0)
+                column(2, actionButton(inputId = "buttonRight", label = "interesting", icon = icon("arrow-right")), align = "right" , offset = 0)
             ),
             br(),
             shinyswiprUI( "quote_swiper",
