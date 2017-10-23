@@ -110,11 +110,11 @@ ui <- fluidPage(
             plotOutput("selectedRegion", height = 300),
             br(),
             fluidRow(
-                column(2, actionButton("undo", 
+                column(12, actionButton("undo", 
                                        "Oopsie daisy",  
                                        style="color:#fff; background-color:Crimson"),
                        align = "center", 
-                       offset = 3 ))
+                       offset = 0 ))
         ),
         mainPanel(
             h4("Swipe Me! Or use the arrows"),
@@ -123,7 +123,7 @@ ui <- fluidPage(
             fluidRow(
                 column(2, actionButton(inputId = "buttonLeft", label = "boring", icon = icon("arrow-left") ), align = "center", offset = 3),
                 column(2, actionButton(inputId = "buttonUp", label = "other", icon = icon("arrow-up") ), align = "center", offset = 0),
-                column(2, actionButton(inputId = "buttonRight", label = "interesting", icon = icon("arrow-right"), align = "center" , offset = 0))
+                column(2, actionButton(inputId = "buttonRight", label = "interesting", icon = icon("arrow-right")), align = "center" , offset = 0)
             ),
             br(),
             shinyswiprUI( "quote_swiper",
@@ -143,7 +143,8 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
     
-    source("app_data_updater.R")
+    # update data in the beginning, changed to when user ends session
+    # source("app_data_updater.R")
     
     card_swipe <- callModule(shinyswipr, "quote_swiper")
     
@@ -183,7 +184,7 @@ server <- function(input, output, session) {
     
     output$selectedRegion <- renderPlot({
         
-        input$useRname
+        input$useRname# to get the shit started
         ggplot(dataSet(), aes(x = qSvsMB, y = qSvsNC, colour = as.factor(dataSubset()))) +
             geom_point() +
             labs(colour="Selected",
@@ -199,6 +200,8 @@ server <- function(input, output, session) {
     
     ### old shit
     output$profilePlot        <- renderPlot({
+        
+        input$useRname # to get the shit started
         datasubset <- dataSet()[dataSubset(),] #data.subset()
         start <- (xtraVar+1) 
         end <-  ncol(dataSet())
@@ -507,6 +510,10 @@ server <- function(input, output, session) {
         ))
         
     }) #close event observe.
+    
+    session$onSessionEnded(function() {
+        source("app_data_updater.R")
+    })
 }
 
 shinyApp(ui, server)
