@@ -143,8 +143,8 @@ ui <- fluidPage(
 
 server <- function(input, output, session) {
     
-    # update data in the beginning, changed to when user ends session
-    # source("app_data_updater.R")
+    # update data in the beginning, also do this when session ends to speed it up
+     source("app_data_updater.R")
     
     card_swipe <- callModule(shinyswipr, "quote_swiper")
     
