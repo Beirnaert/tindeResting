@@ -32,23 +32,27 @@ saveData <- function(input, output, iter) {
 }
 
 getHistory <- function(input) {
-    
-    if(input$onlyNew == "yes"){
-        # new to NatuRA
-        historyfile = "./data/SwipeHistory.sqlite"
-        Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
-        
-        history_indexes <- as.integer(DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND NatuRA=1", sep = "") )[[1]] )
-        
-        DBI::dbDisconnect(Db)
-    } else{
-        # new to me
-        historyfile = "./data/SwipeHistory.sqlite"
-        Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
-        
-        history_indexes <- as.integer(DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND user='", as.character(input$useRname),"'", sep = "") )[[1]] )
-        
-        DBI::dbDisconnect(Db)
+    historyfile = "./data/SwipeHistory.sqlite"
+    if(file.exists(historyfile)){
+        if(input$onlyNew == "yes"){
+            # new to NatuRA
+            
+            Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
+            
+            history_indexes <- as.integer(DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND NatuRA=1", sep = "") )[[1]] )
+            
+            DBI::dbDisconnect(Db)
+        } else{
+            # new to me
+            historyfile = "./data/SwipeHistory.sqlite"
+            Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
+            
+            history_indexes <- as.integer(DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND user='", as.character(input$useRname),"'", sep = "") )[[1]] )
+            
+            DBI::dbDisconnect(Db)
+        }
+    } else {
+        history_indexes = NULL
     }
     return(history_indexes)
 }
@@ -316,7 +320,7 @@ server <- function(input, output, session) {
             data.frame(index  = as.character(dataSet()[dataSubset(),]$index[selection.vector()[as.numeric(appVals$k)]]),
                        mz = as.character(dataSet()[dataSubset(),]$mzmed[selection.vector()[as.numeric(appVals$k)]]),
                        rt = as.character(dataSet()[dataSubset(),]$rtmed[selection.vector()[as.numeric(appVals$k)]]),
-                       swipe  = "left"
+                       swipe  = "Left"
             ),
             appVals$swipes
         )

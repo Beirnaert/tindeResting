@@ -20,7 +20,5 @@ if(data.exists){
     Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
     DBI::dbWriteTable(Db, name="history", value=swipedata, row.names=FALSE, append=TRUE)
     DBI::dbDisconnect(Db)
-    
-    #DBI::dbReadTable(Db, "history")
-    #DBI::dbExecute(Db, "DELETE FROM history WHERE user='seb'" )
+
 }
