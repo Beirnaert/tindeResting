@@ -11,12 +11,10 @@ library(ggplot2)
 xtraVar <- 6
 nswipeReward = 50
 
-nmales <- length(list.files("www/male_celebs/"))
-nfemales <- length(list.files("www/female_celebs/"))
-
 sqlitePath <- "swiperespons.sqlite"
 source("arrangeGrobLocal.R")
 source("grid.arrangeLocal.R")
+
 
 saveData <- function(input, output, iter) {
     # Connect to the database
@@ -272,6 +270,8 @@ server <- function(input, output, session) {
         
         
         if(appVals$k %% nswipeReward == 0){
+            nmales = length(list.files("www/male_celebs"))
+            nfemales = length(list.files("www/female_celebs"))
             if(input$Gender == "female"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("male_celebs/male",sample(nmales,1),".jpg", sep = ""), height = 300), icon = NULL),
@@ -319,6 +319,8 @@ server <- function(input, output, session) {
         
         
         if(appVals$k %% nswipeReward == 0){
+            nmales = length(list.files("www/male_celebs"))
+            nfemales = length(list.files("www/female_celebs"))
             if(input$Gender == "female"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("male_celebs/male",sample(nmales,1),".jpg", sep = ""), height = 300), icon = NULL),
@@ -365,6 +367,8 @@ server <- function(input, output, session) {
         appVals$k <-  appVals$k + 1 
         
         if(appVals$k %% nswipeReward == 0){
+            nmales = length(list.files("www/male_celebs"))
+            nfemales = length(list.files("www/female_celebs"))
             if(input$Gender == "female"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("male_celebs/male",sample(nmales,1),".jpg", sep = ""), height = 300), icon = NULL),
@@ -412,6 +416,8 @@ server <- function(input, output, session) {
         
         
         if(appVals$k %% nswipeReward == 0){
+            nmales = length(list.files("www/male_celebs"))
+            nfemales = length(list.files("www/female_celebs"))
             if(input$Gender == "female"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("male_celebs/male",sample(nmales,1),".jpg", sep = ""), height = 300), icon = NULL),
