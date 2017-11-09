@@ -78,13 +78,13 @@ ui <- fluidPage(
                        textInput("useRname", "Your name", "Louise")
                 ),
                 column(6, 
-                       radioButtons("Gender", "Gender", choiceNames = list(
-                           icon("transgender"),
+                       radioButtons("Preference", "Preference", choiceNames = list(
+                           icon("github-alt"),
                            icon("venus"),
                            icon("mars")
                        ),
                        choiceValues = list(
-                           "LGBTQI" , "female",  "male"
+                           "kitten" , "female",  "male"
                        ), 
                        inline = TRUE
                        )
@@ -272,17 +272,17 @@ server <- function(input, output, session) {
         if(appVals$k %% nswipeReward == 0){
             nmales = length(list.files("www/male_celebs"))
             nfemales = length(list.files("www/female_celebs"))
-            if(input$Gender == "female"){
+            if(input$Preference == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("male_celebs/male",sample(nmales,1),".jpg", sep = ""), height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else if(input$Gender == "LGBTQI"){
+            } else if(input$Preference == "kitten"){
                 showModal(modalDialog(
                     modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else if(input$Gender == "male"){
+            } else if(input$Preference == "female"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("female_celebs/fem",sample(nfemales,1),".jpg", sep = ""), height = 300), icon = NULL),
                     easyClose = TRUE
@@ -321,17 +321,17 @@ server <- function(input, output, session) {
         if(appVals$k %% nswipeReward == 0){
             nmales = length(list.files("www/male_celebs"))
             nfemales = length(list.files("www/female_celebs"))
-            if(input$Gender == "female"){
+            if(input$Preference == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("male_celebs/male",sample(nmales,1),".jpg", sep = ""), height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else if(input$Gender == "LGBTQI"){
+            } else if(input$Preference == "kitten"){
                 showModal(modalDialog(
                     modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else if(input$Gender == "male"){
+            } else if(input$Preference == "female"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("female_celebs/fem",sample(nfemales,1),".jpg", sep = ""), height = 300), icon = NULL),
                     easyClose = TRUE
@@ -369,17 +369,17 @@ server <- function(input, output, session) {
         if(appVals$k %% nswipeReward == 0){
             nmales = length(list.files("www/male_celebs"))
             nfemales = length(list.files("www/female_celebs"))
-            if(input$Gender == "female"){
+            if(input$Preference == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("male_celebs/male",sample(nmales,1),".jpg", sep = ""), height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else if(input$Gender == "LGBTQI"){
+            } else if(input$Preference == "kitten"){
                 showModal(modalDialog(
                     modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else if(input$Gender == "male"){
+            } else if(input$Preference == "female"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("female_celebs/fem",sample(nfemales,1),".jpg", sep = ""), height = 300), icon = NULL),
                     easyClose = TRUE
@@ -418,17 +418,17 @@ server <- function(input, output, session) {
         if(appVals$k %% nswipeReward == 0){
             nmales = length(list.files("www/male_celebs"))
             nfemales = length(list.files("www/female_celebs"))
-            if(input$Gender == "female"){
+            if(input$Preference == "male"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("male_celebs/male",sample(nmales,1),".jpg", sep = ""), height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else if(input$Gender == "LGBTQI"){
+            } else if(input$Preference == "kitten"){
                 showModal(modalDialog(
                     modalButton(label = img(src="kat.gif", height = 300), icon = NULL),
                     easyClose = TRUE
                 ))
-            } else if(input$Gender == "male"){
+            } else if(input$Preference == "female"){
                 showModal(modalDialog(
                     modalButton(label = img(src=paste("female_celebs/fem",sample(nfemales,1),".jpg", sep = ""), height = 300), icon = NULL),
                     easyClose = TRUE
