@@ -3,12 +3,14 @@
 library(shiny)
 library(shinysense)
 library(ggplot2)
+library(randomForest)
+library(stats)
 
 #library(DBI)
 #library(RSQLite)
 #library(grid)
 
-xtraVar <- 6
+xtraVar <- 8
 nswipeReward = 50
 
 sqlitePath <- "swiperespons.sqlite"
@@ -67,6 +69,54 @@ OopsieDaisyRemoveDbEntry <- function(input, output, iter){
     DBI::dbDisconnect(Db)
 }
 
+UpdateModelPredictions <- function(input, xtraVar){
+    
+    #step 1: get reviewed indexes and their swipe response 
+    historyfile = "./data/SwipeHistory.sqlite"
+    Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
+    
+    history_swipe <- DBI::dbGetQuery(Db, paste("SELECT ind, swipe FROM history WHERE polarity='",input$Polarity,"' AND NatuRA=1", sep = "") ) 
+    history_up_included_indices = history_swipe$ind
+    history_swipe <- history_swipe[!duplicated(history_swipe$ind) & history_swipe$swipe != "Up", ]
+    rownames(history_swipe) <- history_swipe$ind
+    
+    DBI::dbDisconnect(Db)
+    
+    #step 2: get the time profiles matching the indices of history_swipe to train the model
+    dat <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
+    trainingData <- dat[dat$index %in% history_swipe$ind ,]
+    rownames(trainingData) <- trainingData$index
+    # reorder to match with history_swipe
+    trainingData <- trainingData[match(history_swipe$ind, trainingData$index), (xtraVar+1):ncol(dat)]
+    trainingLabels <- as.factor(history_swipe$swipe == "Right")
+    
+    RF.model <- randomForest::randomForest(x = trainingData,
+                                           y = trainingLabels, 
+                                           ntree = 500, 
+                                           importance = TRUE)
+    
+    # step 3: use model to predict unseen data
+    PredictData = dat[dat$qSvsMB <= input$qValue & dat$qSvsNC <= input$qValue & !dat$index %in% history_up_included_indices, (xtraVar+1):ncol(dat)]
+    if(any(!colnames(PredictData) == colnames(trainingData))){
+        stop("Something is wrong with the training data and testing data columns. They do not match properly.")
+    }
+    
+    predicted.probs <- stats::predict(object = RF.model, 
+                                      newdata = PredictData, 
+                                      type = "prob")[,2]
+    
+    # set the 'modelPredicted' variable of the Predicted Data to TRUE
+    dat$modelPredicted[dat$qSvsMB <= input$qValue & 
+                           dat$qSvsNC <= input$qValue & 
+                           !dat$index %in% history_up_included_indices] <- TRUE
+    
+    # change the 'predictVal' variable of the Predicted Data to the corresponding probability
+    dat$predictVal[dat$qSvsMB <= input$qValue & 
+                           dat$qSvsNC <= input$qValue & 
+                           !dat$index %in% history_up_included_indices] <- as.numeric(predicted.probs)
+    # write the new data
+    write.table(dat, file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",")
+}
 
 
 ui <- fluidPage(
@@ -95,15 +145,23 @@ ui <- fluidPage(
                        selectInput("Polarity", "Ion mode", c("Positive" = "Pos", "Negative" = "Neg"))
                 ),
                 column(6, 
-                       numericInput("minRT", "minimal RT (min)", 0)
+                       radioButtons("modelFilter", "Model based filter", choiceNames = list(
+                           "no",
+                           "yes"
+                       ),
+                       choiceValues = list(
+                           "FALSE" , "TRUE"
+                       ), 
+                       inline = TRUE
+                       )
                 )
             ),
             fluidRow(
                 column(6,
-                       numericInput("SvsNC", "max S vs NC val.", 0.2)
+                       numericInput("qValue", "max q value", 0.2, min = 0.0, max = 1.0, step = 0.1)
                 ),
                 column(6, 
-                       numericInput("SvsMB", "max S vs MB val.", 0.2)
+                       numericInput("minRT", "minimal RT (min)", 0, min = 0, step = 1)
                 )
             ),
             fluidRow(
@@ -115,11 +173,17 @@ ui <- fluidPage(
             plotOutput("selectedRegion", height = 300),
             br(),
             fluidRow(
-                column(12, actionButton("undo", 
+                column(6, actionButton("undo", 
                                        "Oopsie daisy",  
                                        style="color:#fff; background-color:Crimson"),
                        align = "center", 
+                       offset = 0 ),
+                column(6, actionButton("ModelPredict", 
+                                        "Update Predictions",  
+                                        style="color:#fff; background-color:DodgerBlue"),
+                       align = "center", 
                        offset = 0 ))
+            
         ),
         mainPanel(
             h4("Swipe Me! Or use the arrows"),
@@ -155,19 +219,26 @@ server <- function(input, output, session) {
     
     
     dataSet <- reactive({
-        #test <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
-        test <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
-        test
+        useless <- input$modelFilter
+        dat <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
+        dat
     })
     
     dataSubset <- reactive({
         # the getHistory function knows which selection is to be made (because we give it input): user or natura based
         subset.selection <- rep(FALSE, nrow(dataSet()))
-        subset.selection[dataSet()$qSvsMB <= input$SvsMB &
-                             dataSet()$qSvsNC<= input$SvsNC &
-                             dataSet()$rtmed >= (60*input$minRT) &
-                             ! dataSet()$index %in% getHistory(input) ] <- TRUE
-        
+        if(input$modelFilter){
+            subset.selection[dataSet()$qSvsMB <= input$qValue &
+                                 dataSet()$qSvsNC<= input$qValue &
+                                 dataSet()$rtmed >= (60*input$minRT) &
+                                 ! dataSet()$index %in% getHistory(input) &
+                                 dataSet()$predictVal > 0.5] <- TRUE
+        }else{
+            subset.selection[dataSet()$qSvsMB <= input$qValue &
+                                 dataSet()$qSvsNC<= input$qValue &
+                                 dataSet()$rtmed >= (60*input$minRT) &
+                                 ! dataSet()$index %in% getHistory(input) ] <- TRUE   
+        }
         subset.selection
     })
     
@@ -459,9 +530,20 @@ server <- function(input, output, session) {
         ))
         
     }) #close event observe.
+    observeEvent( input$ModelPredict,{
+        
+        showModal(modalDialog(
+            title = "Updating model predictions",
+            "The model predictions have been updated. You will no longer see time profiles that the model flagged as uninteresting.",
+            easyClose = TRUE
+        ))
+        
+        UpdateModelPredictions(input, xtraVar)
+    }) #close event observe.
     
     session$onSessionEnded(function() {
         source("app_data_updater.R")
+        
     })
 }
 
