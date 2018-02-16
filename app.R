@@ -11,7 +11,7 @@ library(stats)
 #library(grid)
 
 xtraVar <- 8
-nswipeReward = 50
+nswipeReward = 25
 
 sqlitePath <- "swiperespons.sqlite"
 source("arrangeGrobLocal.R")
@@ -74,21 +74,34 @@ UpdateModelPredictions <- function(input, xtraVar){
     #step 1: get reviewed indexes and their swipe response 
     historyfile = "./data/SwipeHistory.sqlite"
     Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
-    
-    history_swipe <- DBI::dbGetQuery(Db, paste("SELECT ind, swipe FROM history WHERE polarity='",input$Polarity,"' AND NatuRA=1", sep = "") ) 
-    history_up_included_indices = history_swipe$ind
-    history_swipe <- history_swipe[!duplicated(history_swipe$ind) & history_swipe$swipe != "Up", ]
-    rownames(history_swipe) <- history_swipe$ind
-    
+    history_swipe_pos <- DBI::dbGetQuery(Db, "SELECT ind, swipe FROM history WHERE polarity='Pos' AND NatuRA=1" ) 
+    history_swipe_neg <- DBI::dbGetQuery(Db, "SELECT ind, swipe FROM history WHERE polarity='Neg' AND NatuRA=1" ) 
+    history_swipe_current <- DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND NatuRA=1", sep = "") )
     DBI::dbDisconnect(Db)
     
+    history_swipe_pos <- history_swipe_pos[!duplicated(history_swipe_pos$ind) & history_swipe_pos$swipe != "Up", ]
+    history_swipe_neg <- history_swipe_neg[!duplicated(history_swipe_neg$ind) & history_swipe_neg$swipe != "Up", ]
+    
+    if (nrow(history_swipe_pos) > 0) rownames(history_swipe_pos) <- paste("Pos_", history_swipe_pos$ind, sep = "")  
+    if (nrow(history_swipe_neg) > 0) rownames(history_swipe_neg) <- paste("Neg_", history_swipe_neg$ind, sep = "") 
+    
     #step 2: get the time profiles matching the indices of history_swipe to train the model
-    dat <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
-    trainingData <- dat[dat$index %in% history_swipe$ind ,]
-    rownames(trainingData) <- trainingData$index
+    dat_pos <- read.table(file = "./data/shinyPosData.txt", sep = ",", header = TRUE)
+    dat_neg <- read.table(file = "./data/shinyNegData.txt", sep = ",", header = TRUE)
+    dat_current <- read.table(file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",", header = TRUE)
+    
+    trainingData_pos <- dat_pos[dat_pos$index %in% history_swipe_pos$ind ,]
+    if (nrow(trainingData_pos) > 0) rownames(trainingData_pos) <- paste("Pos_", trainingData_pos$index, sep = "") 
+    trainingData_neg <- dat_neg[dat_neg$index %in% history_swipe_neg$ind ,]
+    if (nrow(trainingData_neg) > 0) rownames(trainingData_neg) <- paste("Neg_", trainingData_neg$index, sep = "") 
     # reorder to match with history_swipe
-    trainingData <- trainingData[match(history_swipe$ind, trainingData$index), (xtraVar+1):ncol(dat)]
-    trainingLabels <- as.factor(history_swipe$swipe == "Right")
+    trainingData_pos <- trainingData_pos[match(history_swipe_pos$ind, trainingData_pos$index), (xtraVar+1):ncol(dat_pos)]
+    trainingData_neg <- trainingData_neg[match(history_swipe_neg$ind, trainingData_neg$index), (xtraVar+1):ncol(dat_neg)]
+    trainingData = rbind(trainingData_pos,trainingData_neg)
+    
+    trainingLabels_pos <- history_swipe_pos$swipe == "Right"
+    trainingLabels_neg <- history_swipe_neg$swipe == "Right"
+    trainingLabels = as.factor(c(trainingLabels_pos,trainingLabels_neg))
     
     RF.model <- randomForest::randomForest(x = trainingData,
                                            y = trainingLabels, 
@@ -96,7 +109,10 @@ UpdateModelPredictions <- function(input, xtraVar){
                                            importance = TRUE)
     
     # step 3: use model to predict unseen data
-    PredictData = dat[dat$qSvsMB <= input$qValue & dat$qSvsNC <= input$qValue & !dat$index %in% history_up_included_indices, (xtraVar+1):ncol(dat)]
+    PredictData <- dat_current[dat_current$qSvsMB <= input$qValue & 
+                                   dat_current$qSvsNC <= input$qValue & 
+                                   !dat_current$index %in% history_swipe_current$ind, (xtraVar+1):ncol(dat_current)]
+    
     if(any(!colnames(PredictData) == colnames(trainingData))){
         stop("Something is wrong with the training data and testing data columns. They do not match properly.")
     }
@@ -106,16 +122,16 @@ UpdateModelPredictions <- function(input, xtraVar){
                                       type = "prob")[,2]
     
     # set the 'modelPredicted' variable of the Predicted Data to TRUE
-    dat$modelPredicted[dat$qSvsMB <= input$qValue & 
-                           dat$qSvsNC <= input$qValue & 
-                           !dat$index %in% history_up_included_indices] <- TRUE
+    dat_current$modelPredicted[dat_current$qSvsMB <= input$qValue & 
+                                   dat_current$qSvsNC <= input$qValue & 
+                               !dat_current$index %in% history_swipe_current$ind] <- TRUE
     
     # change the 'predictVal' variable of the Predicted Data to the corresponding probability
-    dat$predictVal[dat$qSvsMB <= input$qValue & 
-                           dat$qSvsNC <= input$qValue & 
-                           !dat$index %in% history_up_included_indices] <- as.numeric(predicted.probs)
+    dat_current$predictVal[dat_current$qSvsMB <= input$qValue & 
+                               dat_current$qSvsNC <= input$qValue & 
+                           !dat_current$index %in% history_swipe_current$ind] <- as.numeric(predicted.probs)
     # write the new data
-    write.table(dat, file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",")
+    write.table(dat_current, file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",")
 }
 
 
