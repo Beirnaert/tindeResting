@@ -45,14 +45,12 @@ getHistory <- function(input) {
             history_indexes <- as.integer(DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND NatuRA=1", sep = "") )[[1]] )
             
             DBI::dbDisconnect(Db)
-        } else{
+        } else if(input$onlyNew == "no"){
             # new to me
             historyfile = "./data/SwipeHistory.sqlite"
             Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
             
             history_indexes <- as.integer(DBI::dbGetQuery(Db, paste("SELECT ind FROM history WHERE polarity='",input$Polarity,"' AND user='", as.character(input$useRname),"'", sep = "") )[[1]] )
-            
-            DBI::dbDisconnect(Db)
         }
     } else {
         history_indexes = NULL
@@ -134,6 +132,60 @@ UpdateModelPredictions <- function(input, xtraVar){
     write.table(dat_current, file = paste("./data/shiny",input$Polarity,"Data.txt",sep = ""), sep = ",")
 }
 
+GetModelPredictions <- function(DataToPredict, xtraVar){
+    
+    #step 1: get reviewed indexes and their swipe response 
+    historyfile = "./data/SwipeHistory.sqlite"
+    Db <- DBI::dbConnect(RSQLite::SQLite(), historyfile)
+    history_swipe_pos <- DBI::dbGetQuery(Db, "SELECT ind, swipe FROM history WHERE polarity='Pos' AND NatuRA=1" ) 
+    history_swipe_neg <- DBI::dbGetQuery(Db, "SELECT ind, swipe FROM history WHERE polarity='Neg' AND NatuRA=1" ) 
+    DBI::dbDisconnect(Db)
+    
+    history_swipe_pos <- history_swipe_pos[!duplicated(history_swipe_pos$ind) & history_swipe_pos$swipe != "Up", ]
+    history_swipe_neg <- history_swipe_neg[!duplicated(history_swipe_neg$ind) & history_swipe_neg$swipe != "Up", ]
+    
+    if (nrow(history_swipe_pos) > 0) rownames(history_swipe_pos) <- paste("Pos_", history_swipe_pos$ind, sep = "")  
+    if (nrow(history_swipe_neg) > 0) rownames(history_swipe_neg) <- paste("Neg_", history_swipe_neg$ind, sep = "") 
+    
+    #step 2: get the time profiles matching the indices of history_swipe to train the model
+    dat_pos <- read.table(file = "./data/shinyPosData.txt", sep = ",", header = TRUE)
+    dat_neg <- read.table(file = "./data/shinyNegData.txt", sep = ",", header = TRUE)
+    
+    
+    trainingData_pos <- dat_pos[dat_pos$index %in% history_swipe_pos$ind ,]
+    if (nrow(trainingData_pos) > 0) rownames(trainingData_pos) <- paste("Pos_", trainingData_pos$index, sep = "") 
+    trainingData_neg <- dat_neg[dat_neg$index %in% history_swipe_neg$ind ,]
+    if (nrow(trainingData_neg) > 0) rownames(trainingData_neg) <- paste("Neg_", trainingData_neg$index, sep = "") 
+    # reorder to match with history_swipe
+    trainingData_pos <- trainingData_pos[match(history_swipe_pos$ind, trainingData_pos$index), (xtraVar+1):ncol(dat_pos)]
+    trainingData_neg <- trainingData_neg[match(history_swipe_neg$ind, trainingData_neg$index), (xtraVar+1):ncol(dat_neg)]
+    trainingData = rbind(trainingData_pos,trainingData_neg)
+    
+    trainingLabels_pos <- history_swipe_pos$swipe == "Right"
+    trainingLabels_neg <- history_swipe_neg$swipe == "Right"
+    trainingLabels = as.factor(c(trainingLabels_pos,trainingLabels_neg))
+    
+    RF.model <- randomForest::randomForest(x = trainingData,
+                                           y = trainingLabels, 
+                                           ntree = 500, 
+                                           importance = TRUE)
+    
+    # step 3: use model to predict unseen data
+    PredictData <- DataToPredict[, (xtraVar+1):ncol(dat_current)]
+    
+    if(any(!colnames(PredictData) == colnames(trainingData))){
+        stop("Something is wrong with the training data and testing data columns. They do not match properly.")
+    }
+    
+    # probability of interesting
+    predicted.probs <- stats::predict(object = RF.model, 
+                                      newdata = PredictData, 
+                                      type = "prob")[,2]
+    
+    return(predicted.probs)
+    
+}
+
 
 ui <- fluidPage(
     headerPanel('This is the GOA tindeResting! app.'),
@@ -184,7 +236,7 @@ ui <- fluidPage(
                 column(6,
                        selectInput("onlyNew", "Time profiles", c("New to NatuRA" = "yes", "New to me" = "no"))
                 ),
-                column(6, selectInput("swipeOrder", "Swipe Order", c("Significance" = "sig", "Random" = "rnd")))
+                column(6, selectInput("swipeOrder", "Swipe Order", c("Significance" = "sig", "Random" = "rnd", "Active Learning" = "AL")))
             ),
             plotOutput("selectedRegion", height = 300),
             br(),
@@ -266,13 +318,21 @@ server <- function(input, output, session) {
             showorder <- order(datasubset$qSvsMB+datasubset$qSvsNC)
         } else if(input$swipeOrder == "rnd"){
             showorder <- order(runif(nrow(datasubset)))
-        } else{
+        } else if(input$swipeOrder == "AL"){
+            modelProbs <- GetModelPredictions(datasubset, xtraVar)
+            showorder <- order(abs(modelProbs - 0.5), decreasing = FALSE)
+        }else{
             showorder <- seq(1,nrow(datasubset))
         }
         showorder
     })
     
     
+    distributionPlot <- reactive({
+        datasubset <- dataSet()[dataSubset(),]
+        
+        
+    })
     
     output$selectedRegion <- renderPlot({
         
@@ -388,6 +448,7 @@ server <- function(input, output, session) {
         
         
     }) #close event observe.
+    
     observeEvent( input$buttonLeft,{
         #Record our last swipe results.
         appVals$swipes <- rbind(
@@ -437,6 +498,7 @@ server <- function(input, output, session) {
         
         
     }) #close event observe.
+    
     observeEvent( input$buttonUp,{
         #Record our last swipe results.
         appVals$swipes <- rbind(
@@ -484,6 +546,7 @@ server <- function(input, output, session) {
         
         
     }) #close event observe.
+    
     observeEvent( input$buttonRight,{
         #Record our last swipe results.
         appVals$swipes <- rbind(
@@ -535,6 +598,7 @@ server <- function(input, output, session) {
         
         
     }) #close event observe.
+    
     observeEvent( input$undo,{
         
         OopsieDaisyRemoveDbEntry(input, appVals$swipes, appVals$k)
@@ -546,6 +610,7 @@ server <- function(input, output, session) {
         ))
         
     }) #close event observe.
+    
     observeEvent( input$ModelPredict,{
         
         showModal(modalDialog(

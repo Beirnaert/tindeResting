@@ -36,6 +36,11 @@ if(all(LauraData$index == LauraSwipes$ind)){
 }
 
 MetaboMeeseeks::Meeseeks.RF(LauraData[LauraData$swipe != "Up",7:41], as.factor(LauraData$swipe[LauraData$swipe != "Up"]) )
+
+LauraData_NoUp = LauraData[LauraData$swipe != "Up",]
+MetaboMeeseeks::Meeseeks.RF(LauraData_NoUp[,7:41], LauraData_NoUp$swipe == "Right" )
+MetaboMeeseeks::Meeseeks.RF(LauraData_NoUp[,7:41], LauraData_NoUp$swipe == "Left" )
+
 RFtest = Meeseeks.RF.test(LauraData[LauraData$swipe != "Up",7:41], LauraData$swipe[LauraData$swipe != "Up"] == "Left" )
 
 
